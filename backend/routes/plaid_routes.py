@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from backend.services.plaid_service import create_link_token, exchange_public_token, get_transactions
+from services.plaid_service import create_link_token, exchange_public_token, get_transactions
 import requests
 import os
 

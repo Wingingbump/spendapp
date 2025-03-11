@@ -1,5 +1,5 @@
 from flask import Flask
-from backend.routes.plaid_routes import plaid_bp
+from routes.plaid_routes import plaid_bp
 from dotenv import load_dotenv
 import os
 
