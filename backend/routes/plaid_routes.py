@@ -1,79 +1,108 @@
 from flask import Blueprint, request, jsonify
-from services.plaid_service import create_link_token, exchange_public_token, get_transactions
-import requests
-import os
+from services.plaid_service import PlaidService
+from database.models import db, User, BankAccount, Transaction
+from datetime import datetime
 
-plaid_bp = Blueprint("plaid", __name__)
+plaid_bp = Blueprint('plaid', __name__)
+plaid_service = PlaidService()
 
-USER_ACCESS_TOKENS = {}  # Temporary storage for tokens
+@plaid_bp.route('/create-link-token', methods=['POST'])
+def create_link_token():
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
+        
+        link_token = plaid_service.create_sandbox_link_token(user_id)
+        return jsonify({"link_token": link_token})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-PLAID_CLIENT_ID = os.getenv("PLAID_CLIENT_ID")
-PLAID_SECRET = os.getenv("PLAID_SECRET")
-PLAID_ENV = os.getenv("PLAID_ENV", "sandbox")
+@plaid_bp.route('/exchange-token', methods=['POST'])
+def exchange_token():
+    try:
+        data = request.get_json()
+        public_token = data.get('public_token')
+        user_id = data.get('user_id')
+        
+        if not public_token or not user_id:
+            return jsonify({"error": "public_token and user_id are required"}), 400
+        
+        # Exchange public token for access token
+        access_token = plaid_service.exchange_public_token(public_token)
+        
+        # Get account information
+        accounts = plaid_service.get_accounts(access_token)
+        
+        # Store bank account information
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        for account in accounts:
+            bank_account = BankAccount(
+                user_id=user_id,
+                plaid_account_id=account['account_id'],
+                institution_name=account.get('institution_name', 'Unknown'),
+                account_name=account.get('name', 'Unknown'),
+                account_type=account.get('type', 'Unknown'),
+                balance=account.get('balances', {}).get('current', 0)
+            )
+            db.session.add(bank_account)
+        
+        db.session.commit()
+        return jsonify({"message": "Bank accounts added successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
-# Endpoint to create the link token for user
-@plaid_bp.route("/get_link_token", methods=["POST"])
-def get_link_token():
-    """Creates a link token for the user to select a bank."""
-    user_id = request.json.get("user_id", "test_user")
-    response = create_link_token(user_id)
-    return jsonify(response)
+@plaid_bp.route('/transactions/<user_id>', methods=['GET'])
+def get_user_transactions(user_id):
+    try:
+        # Get user's bank accounts
+        bank_accounts = BankAccount.query.filter_by(user_id=user_id).all()
+        if not bank_accounts:
+            return jsonify({"error": "No bank accounts found for user"}), 404
+        
+        all_transactions = []
+        for account in bank_accounts:
+            transactions = plaid_service.get_transactions(account.plaid_account_id)
+            for transaction in transactions:
+                # Store transaction in database
+                db_transaction = Transaction(
+                    bank_account_id=account.id,
+                    plaid_transaction_id=transaction['transaction_id'],
+                    amount=transaction['amount'],
+                    date=datetime.strptime(transaction['date'], '%Y-%m-%d').date(),
+                    description=transaction.get('name', '')
+                )
+                db.session.add(db_transaction)
+                all_transactions.append(transaction)
+        
+        db.session.commit()
+        return jsonify({"transactions": all_transactions})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
-# Endpoint to generate a public token in sandbox
-@plaid_bp.route("/sandbox/public_token_create", methods=["POST"])
-def create_public_token():
-    """Create a test public token using Plaid's sandbox API."""
-    institution_id = request.json.get("institution_id")
-    initial_products = request.json.get("initial_products", ["auth", "transactions"])
-    
-    # Call Plaid API to create the public token
-    url = f"https://{PLAID_ENV}.plaid.com/sandbox/public_token/create"
-    
-    payload = {
-        "institution_id": institution_id,
-        "initial_products": initial_products
-    }
-    
-    headers = {
-        "Content-Type": "application/json",
-        "Plaid-Client-ID": PLAID_CLIENT_ID,
-        "Plaid-Secret": PLAID_SECRET,
-    }
-    
-    response = requests.post(url, json=payload, headers=headers)
-    response_data = response.json()
-
-    if response.status_code != 200:
-        return jsonify({"error": response_data.get("error_message", "Failed to create public token")}), 400
-
-    return jsonify({"public_token": response_data.get("public_token")})
-
-# Endpoint to exchange the public token for an access token
-@plaid_bp.route("/exchange_public_token", methods=["POST"])
-def get_access_token():
-    """Exchanges public token for an access token."""
-    user_id = request.json.get("user_id", "test_user")
-    public_token = request.json.get("public_token")
-
-    response = exchange_public_token(public_token)
-
-    if "access_token" in response:
-        USER_ACCESS_TOKENS[user_id] = response["access_token"]
-
-    return jsonify(response)
-
-# Endpoint to retrieve user transactions
-@plaid_bp.route("/get_transactions", methods=["POST"])
-def get_user_transactions():
-    """Retrieves transactions for the user from all linked institutions."""
-    user_id = request.json.get("user_id", "test_user")
-    
-    if user_id not in USER_ACCESS_TOKENS:
-        return jsonify({"error": "Access token not found for user."}), 400
-    
-    access_token = USER_ACCESS_TOKENS[user_id]
-    
-    # Get transactions for the user
-    transactions = get_transactions(access_token)
-    
-    return jsonify(transactions)
+@plaid_bp.route('/accounts/<user_id>', methods=['GET'])
+def get_user_accounts(user_id):
+    try:
+        bank_accounts = BankAccount.query.filter_by(user_id=user_id).all()
+        if not bank_accounts:
+            return jsonify({"error": "No bank accounts found for user"}), 404
+        
+        accounts_data = []
+        for account in bank_accounts:
+            accounts_data.append({
+                "id": account.id,
+                "name": account.account_name,
+                "type": account.account_type,
+                "balance": account.balance,
+                "institution": account.institution_name
+            })
+        
+        return jsonify({"accounts": accounts_data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

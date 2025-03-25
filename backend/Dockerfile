@@ -1,20 +1,38 @@
 # Use an official Python runtime as the base image
-FROM python:3.9-slim
+FROM python:3.11-slim
 
-# Set the working directory inside the container to the backend directory
-WORKDIR /app/backend
+# Set the working directory
+WORKDIR /app
 
-# Copy all files from the local machine into the container's /app/backend directory
-COPY . /app/backend
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install only missing or outdated dependencies
-RUN pip install --no-cache-dir --upgrade --no-deps -r /app/backend/requirements.txt
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
 
-# Expose the application port
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application
+COPY . .
+
+# Create a non-root user
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=development
+ENV PYTHONUNBUFFERED=1
+
+# Expose port
 EXPOSE 5000
 
-# Run the app
-CMD ["python", "app.py"]
+# Command to run the application
+CMD ["flask", "run", "--host=0.0.0.0"]
 
 
 

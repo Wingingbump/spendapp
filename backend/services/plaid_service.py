@@ -1,92 +1,95 @@
-import requests
-import os
+from plaid.api import plaid_api
+from plaid.model.sandbox_public_token_create_request import SandboxPublicTokenCreateRequest
+from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+from plaid.model.products import Products
+from plaid.model.transactions_get_request import TransactionsGetRequest
+from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
 from datetime import datetime, timedelta
+from plaid import Configuration, ApiClient
+import os
+from dotenv import load_dotenv
 
-PLAID_API_URL = f"https://{os.getenv('PLAID_ENV')}.plaid.com"
+class PlaidService:
+    def __init__(self):
+        load_dotenv()
+        configuration = Configuration(
+            host="https://sandbox.plaid.com",  # Change to "https://development.plaid.com" for development
+            api_key={
+                "clientId": os.getenv("PLAID_CLIENT_ID"),
+                "secret": os.getenv("PLAID_SECRET"),
+            }
+        )
+        api_client = ApiClient(configuration)
+        self.client = plaid_api.PlaidApi(api_client)
 
-def create_link_token(user_id):
-    """Generates a link token to initialize Plaid Link."""
-    url = f"{PLAID_API_URL}/link/token/create"
-    
-    payload = {
-        "client_id": os.getenv("PLAID_CLIENT_ID"),
-        "secret": os.getenv("PLAID_SECRET"),
-        "client_name": "SpendApp",
-        "user": {"client_user_id": user_id},
-        "products": ["transactions"],  # To retrieve transactions
-        "country_codes": ["US"],
-        "language": "en"
-    }
+    def create_sandbox_link_token(self, user_id: str):
+        """Create a link token for sandbox testing"""
+        try:
+            request = {
+                "user": {"client_user_id": user_id},
+                "client_name": "SpendApp",
+                "products": ["transactions"],
+                "country_codes": ["US"],
+                "language": "en"
+            }
+            response = self.client.link_token_create(request)
+            return response["link_token"]
+        except Exception as e:
+            print(f"Error creating link token: {str(e)}")
+            raise
 
-    try:
-        response = requests.post(url, json=payload)
-        response.raise_for_status()  # Will raise an error for bad responses
-        return response.json()
-    except requests.exceptions.HTTPError as err:
-        print(f"HTTP error occurred: {err}")
-        return {"error": str(err)}
-    except requests.exceptions.RequestException as err:
-        print(f"Request error occurred: {err}")
-        return {"error": str(err)}
+    def exchange_public_token(self, public_token: str):
+        """Exchange public token for access token"""
+        try:
+            exchange_request = ItemPublicTokenExchangeRequest(public_token=public_token)
+            exchange_response = self.client.item_public_token_exchange(exchange_request)
+            return exchange_response["access_token"]
+        except Exception as e:
+            print(f"Error exchanging public token: {str(e)}")
+            raise
 
-def exchange_public_token(public_token):
-    """Exchanges a public token for an access token."""
-    url = f"{PLAID_API_URL}/item/public_token/exchange"
+    def get_transactions(self, access_token: str, start_date: datetime = None, end_date: datetime = None):
+        """Get transactions for a given access token"""
+        try:
+            if not start_date:
+                start_date = datetime.now() - timedelta(days=30)
+            if not end_date:
+                end_date = datetime.now()
 
-    payload = {
-        "client_id": os.getenv("PLAID_CLIENT_ID"),
-        "secret": os.getenv("PLAID_SECRET"),
-        "public_token": public_token
-    }
+            options = TransactionsGetRequestOptions(
+                count=100,
+                offset=0
+            )
 
-    try:
-        response = requests.post(url, json=payload)
-        response.raise_for_status()  # Will raise an exception for 4xx and 5xx status codes
-        return response.json()
-    except requests.exceptions.HTTPError as err:
-        print(f"HTTP error occurred: {err}")
-        print(f"Response body: {response.text}")  # Print the full response for more details
-        return {"error": str(err)}
-    except requests.exceptions.RequestException as err:
-        print(f"Request error occurred: {err}")
-        return {"error": str(err)}
+            request = TransactionsGetRequest(
+                access_token=access_token,
+                start_date=start_date.date(),
+                end_date=end_date.date(),
+                options=options
+            )
 
+            response = self.client.transactions_get(request)
+            return response["transactions"]
+        except Exception as e:
+            print(f"Error getting transactions: {str(e)}")
+            raise
 
-def get_transactions(access_token):
-    """Fetches transactions for the given access token."""
-    url = f"{PLAID_API_URL}/transactions/get"
-    
-    # Setting the date range (last 30 days)
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=30)
-    
-    payload = {
-        "access_token": access_token,
-        "start_date": start_date.strftime('%Y-%m-%d'),
-        "end_date": end_date.strftime('%Y-%m-%d'),
-    }
+    def get_accounts(self, access_token: str):
+        """Get accounts for a given access token"""
+        try:
+            response = self.client.accounts_get({"access_token": access_token})
+            return response["accounts"]
+        except Exception as e:
+            print(f"Error getting accounts: {str(e)}")
+            raise
 
-    headers = {
-        "Plaid-Client-ID": os.getenv("PLAID_CLIENT_ID"),
-        "Plaid-Secret": os.getenv("PLAID_SECRET")
-    }
-    
-    # Debugging: Print out the payload being sent to Plaid API
-    print(f"Sending request to Plaid with payload: {payload}")
-    
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        
-        # Debugging: Print out the response from Plaid
-        print(f"Response from Plaid: {response.json()}")
-        
-        return response.json()
-    except requests.exceptions.HTTPError as err:
-        print(f"HTTP error occurred: {err}")
-        return {"error": str(err)}
-    except requests.exceptions.RequestException as err:
-        print(f"Request error occurred: {err}")
-        return {"error": str(err)}
+    def get_balance(self, access_token: str):
+        """Get account balances for a given access token"""
+        try:
+            response = self.client.accounts_balance_get({"access_token": access_token})
+            return response["accounts"]
+        except Exception as e:
+            print(f"Error getting balances: {str(e)}")
+            raise
 
 
