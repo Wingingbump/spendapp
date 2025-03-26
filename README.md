@@ -1,97 +1,95 @@
 # SpendApp
 
-A personal finance application that helps you track your spending by connecting to your bank accounts using Plaid.
+A modern expense tracking application with secure authentication and Plaid integration.
+
+## Features
+
+- User authentication with JWT
+- Secure password hashing
+- PostgreSQL database integration
+- React frontend with Tailwind CSS
+- FastAPI backend
+- Docker containerization
+- Plaid integration (coming soon)
+
+## Project Structure
+
+```
+.
+├── backend/
+│   ├── auth/           # Authentication utilities
+│   ├── models/         # Database models
+│   ├── routes/         # API routes
+│   ├── services/       # Business logic
+│   ├── tests/          # Unit tests
+│   ├── Dockerfile      # Backend container configuration
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── components/ # React components
+│   │   └── App.tsx     # Main application component
+│   ├── Dockerfile      # Frontend container configuration
+│   └── package.json
+├── docker-compose.yml  # Container orchestration
+└── .env.example        # Example environment variables
+```
 
 ## Setup
 
-### Using Docker (Recommended)
-
-1. Create a `.env` file in the root directory with your Plaid API credentials:
-```
-PLAID_CLIENT_ID=your_client_id
-PLAID_SECRET=your_secret
-PLAID_ENV=sandbox
+1. Clone the repository
+```bash
+git clone <repository-url>
+cd spendapp
 ```
 
-2. Build and start the containers:
+2. Create environment files
+```bash
+cp backend/.env.example backend/.env
+# Edit backend/.env with your configuration
+```
+
+3. Start the application
 ```bash
 docker-compose up --build
 ```
 
-3. Initialize the database:
-```bash
-docker-compose exec backend flask db init
-docker-compose exec backend flask db migrate
-docker-compose exec backend flask db upgrade
-```
-
 The application will be available at:
 - Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
-- Database: localhost:5432
+- Backend: http://localhost:8000
 
-### Manual Setup
+## Development
 
-#### Backend Setup
+### Prerequisites
+- Docker
+- Docker Compose
 
-1. Create a virtual environment and activate it:
+### Running in development mode
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+docker-compose up --build
 ```
 
-2. Install dependencies:
+The development environment includes:
+- Hot reloading for both frontend and backend
+- PostgreSQL database
+- Volume mounts for local development
+
+### Running tests
 ```bash
-cd backend
-pip install -r requirements.txt
+# Backend tests
+docker-compose exec backend pytest
+
+# Frontend tests
+docker-compose exec frontend npm test
 ```
-
-3. Create a `.env` file in the backend directory with your Plaid API credentials:
-```
-PLAID_CLIENT_ID=your_client_id
-PLAID_SECRET=your_secret
-PLAID_ENV=sandbox
-```
-
-#### Frontend Setup
-
-1. Install dependencies:
-```bash
-cd frontend
-npm install
-```
-
-2. Start the development server:
-```bash
-npm start
-```
-
-## Testing
-
-### Backend Tests
-```bash
-cd backend
-python -m unittest tests/test_plaid_integration.py
-```
-
-### Frontend Tests
-```bash
-cd frontend
-npm test
-```
-
-## Features
-
-- Connect bank accounts using Plaid
-- View account balances
-- Track transactions
-- Categorize spending
-- View spending analytics
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

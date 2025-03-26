@@ -1,43 +1,122 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Layout from './components/Layout';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
-import TransactionsPage from './components/TransactionsPage';
-import Settings from './components/Settings';
 import Sidebar from './components/Sidebar';
+import Transactions from './components/Transactions';
+import Budget from './components/Budget';
+import Analytics from './components/Analytics';
+import Settings from './components/Settings';
+import { useAuth } from './contexts/AuthContext';
 
-// Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    return <Navigate to="/login" />;
-  }
-  return <>{children}</>;
-};
+const App: React.FC = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isAuthenticated } = useAuth();
 
-const App = () => {
+  const mainContentClass = `flex-1 transition-all duration-300 ${isCollapsed ? 'ml-16' : 'ml-48'}`;
+
   return (
     <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <div className="flex h-screen bg-gray-100">
-                <Sidebar />
-                <div className="flex-1 overflow-auto">
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/transactions" element={<TransactionsPage />} />
-                    <Route path="/settings" element={<Settings />} />
-                  </Routes>
-                </div>
-              </div>
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
+      <div className="min-h-screen bg-gray-50">
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <LoginPage />
+              )
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              isAuthenticated ? (
+                <Layout>
+                  <Sidebar isCollapsed={isCollapsed} onCollapse={setIsCollapsed} />
+                  <div className={mainContentClass}>
+                    <Dashboard />
+                  </div>
+                </Layout>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/transactions"
+            element={
+              isAuthenticated ? (
+                <Layout>
+                  <Sidebar isCollapsed={isCollapsed} onCollapse={setIsCollapsed} />
+                  <div className={mainContentClass}>
+                    <Transactions />
+                  </div>
+                </Layout>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/budget"
+            element={
+              isAuthenticated ? (
+                <Layout>
+                  <Sidebar isCollapsed={isCollapsed} onCollapse={setIsCollapsed} />
+                  <div className={mainContentClass}>
+                    <Budget />
+                  </div>
+                </Layout>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              isAuthenticated ? (
+                <Layout>
+                  <Sidebar isCollapsed={isCollapsed} onCollapse={setIsCollapsed} />
+                  <div className={mainContentClass}>
+                    <Analytics />
+                  </div>
+                </Layout>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              isAuthenticated ? (
+                <Layout>
+                  <Sidebar isCollapsed={isCollapsed} onCollapse={setIsCollapsed} />
+                  <div className={mainContentClass}>
+                    <Settings />
+                  </div>
+                </Layout>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+        </Routes>
+      </div>
     </Router>
   );
 };

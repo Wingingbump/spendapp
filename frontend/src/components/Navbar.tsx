@@ -1,69 +1,53 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Disclosure } from '@headlessui/react';
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
+import { FiSearch, FiBell, FiUser } from 'react-icons/fi';
+import { useAuth } from '../contexts/AuthContext';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Transactions', href: '/transactions' },
-  { name: 'Analytics', href: '/analytics' },
-  { name: 'Settings', href: '/settings' },
-];
+const Navbar: React.FC = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
 
-const Navbar = () => {
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <Disclosure as="nav" className="bg-white shadow">
-      {({ open }) => (
-        <>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex h-16 justify-between">
-              <div className="flex">
-                <div className="flex flex-shrink-0 items-center">
-                  <Link to="/" className="text-2xl font-bold text-primary-600">
-                    SpendApp
-                  </Link>
-                </div>
-                <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary-500 hover:text-gray-700"
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-              <div className="-mr-2 flex items-center sm:hidden">
-                <Disclosure.Button className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500">
-                  <span className="sr-only">Open main menu</span>
-                  {open ? (
-                    <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
-                  ) : (
-                    <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
-                  )}
-                </Disclosure.Button>
-              </div>
-            </div>
+    <nav className="fixed top-0 left-0 right-0 h-16 bg-emerald-900 text-white shadow-md z-50">
+      <div className="h-full px-4 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-xl font-semibold">SpendApp</h1>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search..."
+              className="bg-emerald-800/50 text-white placeholder-emerald-200/70 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <FiSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-emerald-200/70" />
           </div>
 
-          <Disclosure.Panel className="sm:hidden">
-            <div className="space-y-1 pb-3 pt-2">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-primary-500 hover:bg-gray-50 hover:text-gray-700"
-                >
-                  {item.name}
-                </Link>
-              ))}
+          <button className="p-2 hover:bg-emerald-800/50 rounded-lg transition-colors">
+            <FiBell className="w-5 h-5" />
+          </button>
+
+          <button 
+            onClick={handleLogout}
+            className="p-2 hover:bg-emerald-800/50 rounded-lg transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-emerald-700 flex items-center justify-center">
+              <FiUser className="w-5 h-5" />
             </div>
-          </Disclosure.Panel>
-        </>
-      )}
-    </Disclosure>
+          </button>
+        </div>
+      </div>
+    </nav>
   );
 };
 

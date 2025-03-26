@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 # Import your models
-from database.models import Base
+from database.models import db
 from database.config import Config
 
 # Load environment variables
@@ -27,7 +27,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-target_metadata = Base.metadata
+target_metadata = db.metadata
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""

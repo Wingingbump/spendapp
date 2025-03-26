@@ -29,10 +29,10 @@ ENV FLASK_ENV=development
 ENV PYTHONUNBUFFERED=1
 
 # Expose port
-EXPOSE 5000
+EXPOSE 8000
 
 # Command to run the application
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["flask", "run", "--host=0.0.0.0", "--port=8000"]
 
 
 
