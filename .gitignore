@@ -1,24 +1,80 @@
 # Environment variables
 .env
-.env.local
-.env.*.local
+.env.*
 
-# Python
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Database
+db_data/
+*.db
+*.sqlite3
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies
+node_modules/
 __pycache__/
 *.py[cod]
-*.so
+*$py.class
 .Python
-env/
-venv/
-.venv/
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Python
+env/
+venv/
+.venv/
+
 # Node
-node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -36,11 +92,6 @@ htmlcov/
 .vscode/
 *.swp
 *.swo
-
-# Database
-*.db
-*.sqlite3
-db_data/
 
 # Build
 /frontend/build/
@@ -177,9 +228,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
-# Docker-related files
-docker-compose.override.yml
 
 PLAID_CLIENT_ID=your_client_id
 PLAID_SECRET=your_secret
